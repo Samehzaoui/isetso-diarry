@@ -2,7 +2,7 @@
 
 # Installation
 
-1) `git clone https://github.com/akremdev/projet-symfony5.git`
+1) `git clone https://github.com/Samehzaoui/isetso-diarry.git`
 2) `composer install`
 3) `change .env credentials (username, password, dbname)`
 4) `php bin/console doctrine:database:create`
