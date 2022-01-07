@@ -1,0 +1,452 @@
+JOURNALCTL(1)                                                                                     journalctl                                                                                    JOURNALCTL(1)
+
+NNAAMMEE
+       journalctl - Query the systemd journal
+
+SSYYNNOOPPSSIISS
+       jjoouurrnnaallccttll [OPTIONS...] [MATCHES...]
+
+DDEESSCCRRIIPPTTIIOONN
+       jjoouurrnnaallccttll may be used to query the contents of the ssyysstteemmdd(1) journal as written by ssyysstteemmdd--jjoouurrnnaalldd..sseerrvviiccee(8).
+
+       If called without parameters, it will show the full contents of the journal, starting with the oldest entry collected.
+
+       If one or more match arguments are passed, the output is filtered accordingly. A match is in the format "FIELD=VALUE", e.g.  "_SYSTEMD_UNIT=httpd.service", referring to the components of a
+       structured journal entry. See ssyysstteemmdd..jjoouurrnnaall--ffiieellddss(7) for a list of well-known fields. If multiple matches are specified matching different fields, the log entries are filtered by both, i.e. the
+       resulting output will show only entries matching all the specified matches of this kind. If two matches apply to the same field, then they are automatically matched as alternatives, i.e. the
+       resulting output will show entries matching any of the specified matches for the same field. Finally, the character "+" may appear as a separate word between other terms on the command line. This
+       causes all matches before and after to be combined in a disjunction (i.e. logical OR).
+
+       It is also possible to filter the entries by specifying an absolute file path as an argument. The file path may be a file or a symbolic link and the file must exist at the time of the query. If a
+       file path refers to an executable binary, an "_EXE=" match for the canonicalized binary path is added to the query. If a file path refers to an executable script, a "_COMM=" match for the script
+       name is added to the query. If a file path refers to a device node, "_KERNEL_DEVICE=" matches for the kernel name of the device and for each of its ancestor devices is added to the query. Symbolic
+       links are dereferenced, kernel names are synthesized, and parent devices are identified from the environment at the time of the query. In general, a device node is the best proxy for an actual
+       device, as log entries do not usually contain fields that identify an actual device. For the resulting log entries to be correct for the actual device, the relevant parts of the environment at the
+       time the entry was logged, in particular the actual device corresponding to the device node, must have been the same as those at the time of the query. Because device nodes generally change their
+       corresponding devices across reboots, specifying a device node path causes the resulting entries to be restricted to those from the current boot.
+
+       Additional constraints may be added using options ----bboooott, ----uunniitt==, etc., to further limit what entries will be shown (logical AND).
+
+       Output is interleaved from all accessible journal files, whether they are rotated or currently being written, and regardless of whether they belong to the system itself or are accessible user
+       journals.
+
+       The set of journal files which will be used can be modified using the ----uusseerr, ----ssyysstteemm, ----ddiirreeccttoorryy, and ----ffiillee options, see below.
+
+       All users are granted access to their private per-user journals. However, by default, only root and users who are members of a few special groups are granted access to the system journal and the
+       journals of other users. Members of the groups "systemd-journal", "adm", and "wheel" can read all journal files. Note that the two latter groups traditionally have additional privileges specified by
+       the distribution. Members of the "wheel" group can often perform administrative tasks.
+
+       The output is paged through lleessss by default, and long lines are "truncated" to screen width. The hidden part can be viewed by using the left-arrow and right-arrow keys. Paging can be disabled; see
+       the ----nnoo--ppaaggeerr option and the "Environment" section below.
+
+       When outputting to a tty, lines are colored according to priority: lines of level ERROR and higher are colored red; lines of level NOTICE and higher are highlighted; lines of level DEBUG are colored
+       lighter grey; other lines are displayed normally.
+
+OOPPTTIIOONNSS
+       The following options are understood:
+
+       ----nnoo--ffuullll, ----ffuullll, --ll
+           Ellipsize fields when they do not fit in available columns. The default is to show full fields, allowing them to wrap or be truncated by the pager, if one is used.
+
+           The old options --ll/----ffuullll are not useful anymore, except to undo ----nnoo--ffuullll.
+
+       --aa, ----aallll
+           Show all fields in full, even if they include unprintable characters or are very long. By default, fields with unprintable characters are abbreviated as "blob data". (Note that the pager may
+           escape unprintable characters again.)
+
+       --ff, ----ffoollllooww
+           Show only the most recent journal entries, and continuously print new entries as they are appended to the journal.
+
+       --ee, ----ppaaggeerr--eenndd
+           Immediately jump to the end of the journal inside the implied pager tool. This implies --nn11000000 to guarantee that the pager will not buffer logs of unbounded size. This may be overridden with an
+           explicit --nn with some other numeric value, while --nnaallll will disable this cap. Note that this option is only supported for the lleessss(1) pager.
+
+       --nn, ----lliinneess==
+           Show the most recent journal events and limit the number of events shown. If ----ffoollllooww is used, this option is implied. The argument is a positive integer or "all" to disable line limiting. The
+           default value is 10 if no argument is given.
+
+       ----nnoo--ttaaiill
+           Show all stored output lines, even in follow mode. Undoes the effect of ----lliinneess==.
+
+       --rr, ----rreevveerrssee
+           Reverse output so that the newest entries are displayed first.
+
+       --oo, ----oouuttppuutt==
+           Controls the formatting of the journal entries that are shown. Takes one of the following options:
+
+           sshhoorrtt
+               is the default and generates an output that is mostly identical to the formatting of classic syslog files, showing one line per journal entry.
+
+           sshhoorrtt--ffuullll
+               is very similar, but shows timestamps in the format the ----ssiinnccee== and ----uunnttiill== options accept. Unlike the timestamp information shown in sshhoorrtt output mode this mode includes weekday, year and
+               timezone information in the output, and is locale-independent.
+
+           sshhoorrtt--iissoo
+               is very similar, but shows ISO 8601 wallclock timestamps.
+
+           sshhoorrtt--iissoo--pprreecciissee
+               as for sshhoorrtt--iissoo but includes full microsecond precision.
+
+           sshhoorrtt--pprreecciissee
+               is very similar, but shows classic syslog timestamps with full microsecond precision.
+
+           sshhoorrtt--mmoonnoottoonniicc
+               is very similar, but shows monotonic timestamps instead of wallclock timestamps.
+
+           sshhoorrtt--uunniixx
+               is very similar, but shows seconds passed since January 1st 1970 UTC instead of wallclock timestamps ("UNIX time"). The time is shown with microsecond accuracy.
+
+           vveerrbboossee
+               shows the full-structured entry items with all fields.
+
+           eexxppoorrtt
+               serializes the journal into a binary (but mostly text-based) stream suitable for backups and network transfer (see JJoouurrnnaall EExxppoorrtt FFoorrmmaatt[1] for more information). To import the binary stream
+               back into native journald format use ssyysstteemmdd--jjoouurrnnaall--rreemmoottee(8).
+
+           jjssoonn
+               formats entries as JSON objects, separated by newline characters (see JJoouurrnnaall JJSSOONN FFoorrmmaatt[2] for more information). Field values are generally encoded as JSON strings, with three exceptions:
+
+                1. Fields larger than 4096 bytes are encoded as nnuullll values. (This may be turned off by passing ----aallll, but be aware that this may allocate overly long JSON objects.)
+
+                2. Journal entries permit non-unique fields within the same log entry. JSON does not allow non-unique fields within objects. Due to this, if a non-unique field is encountered a JSON array
+                   is used as field value, listing all field values as elements.
+
+                3. Fields containing non-printable or non-UTF8 bytes are encoded as arrays containing the raw bytes individually formatted as unsigned numbers.
+
+               Note that this encoding is reversible (with the exception of the size limit).
+
+           jjssoonn--pprreettttyy
+               formats entries as JSON data structures, but formats them in multiple lines in order to make them more readable by humans.
+
+           jjssoonn--ssssee
+               formats entries as JSON data structures, but wraps them in a format suitable for SSeerrvveerr--SSeenntt EEvveennttss[3].
+
+           jjssoonn--sseeqq
+               formats entries as JSON data structures, but prefixes them with an ASCII Record Separator character (0x1E) and suffixes them with an ASCII Line Feed character (0x0A), in accordance with
+               JJaavvaaSSccrriipptt OObbjjeecctt NNoottaattiioonn ((JJSSOONN)) TTeexxtt SSeeqquueenncceess[4] ("application/json-seq").
+
+           ccaatt
+               generates a very terse output, only showing the actual message of each journal entry with no metadata, not even a timestamp.
+
+           wwiitthh--uunniitt
+               similar to short-full, but prefixes the unit and user unit names instead of the traditional syslog identifier. Useful when using templated instances, as it will include the arguments in the
+               unit names.
+
+       ----oouuttppuutt--ffiieellddss==
+           A comma separated list of the fields which should be included in the output. This only has an effect for the output modes which would normally show all fields (vveerrbboossee, eexxppoorrtt, jjssoonn,
+           jjssoonn--pprreettttyy, jjssoonn--ssssee and jjssoonn--sseeqq). The "__CURSOR", "__REALTIME_TIMESTAMP", "__MONOTONIC_TIMESTAMP", and "_BOOT_ID" fields are always printed.
+
+       ----uuttcc
+           Express time in Coordinated Universal Time (UTC).
+
+       ----nnoo--hhoossttnnaammee
+           Don't show the hostname field of log messages originating from the local host. This switch only has an effect on the sshhoorrtt family of output modes (see above).
+
+       --xx, ----ccaattaalloogg
+           Augment log lines with explanation texts from the message catalog. This will add explanatory help texts to log messages in the output where this is available. These short help texts will explain
+           the context of an error or log event, possible solutions, as well as pointers to support forums, developer documentation, and any other relevant manuals. Note that help texts are not available
+           for all messages, but only for selected ones. For more information on the message catalog, please refer to the MMeessssaaggee CCaattaalloogg DDeevveellooppeerr DDooccuummeennttaattiioonn[5].
+
+           Note: when attaching jjoouurrnnaallccttll output to bug reports, please do _n_o_t use --xx.
+
+       --qq, ----qquuiieett
+           Suppresses all informational messages (i.e. "-- Logs begin at ...", "-- Reboot --"), any warning messages regarding inaccessible system journals when run as a normal user.
+
+       --mm, ----mmeerrggee
+           Show entries interleaved from all available journals, including remote ones.
+
+       --bb [[[[_I_D][_±_o_f_f_s_e_t]|aallll], ----bboooott[[==[[_I_D][_±_o_f_f_s_e_t]|aallll]
+           Show messages from a specific boot. This will add a match for "_BOOT_ID=".
+
+           The argument may be empty, in which case logs for the current boot will be shown.
+
+           If the boot ID is omitted, a positive _o_f_f_s_e_t will look up the boots starting from the beginning of the journal, and an equal-or-less-than zero _o_f_f_s_e_t will look up boots starting from the end of
+           the journal. Thus, 11 means the first boot found in the journal in chronological order, 22 the second and so on; while --00 is the last boot, --11 the boot before last, and so on. An empty _o_f_f_s_e_t is
+           equivalent to specifying --00, except when the current boot is not the last boot (e.g. because ----ddiirreeccttoorryy was specified to look at logs from a different machine).
+
+           If the 32-character _I_D is specified, it may optionally be followed by _o_f_f_s_e_t which identifies the boot relative to the one given by boot _I_D. Negative values mean earlier boots and positive
+           values mean later boots. If _o_f_f_s_e_t is not specified, a value of zero is assumed, and the logs for the boot given by _I_D are shown.
+
+           The special argument aallll can be used to negate the effect of an earlier use of --bb.
+
+       ----lliisstt--bboooottss
+           Show a tabular list of boot numbers (relative to the current boot), their IDs, and the timestamps of the first and last message pertaining to the boot.
+
+       --kk, ----ddmmeessgg
+           Show only kernel messages. This implies --bb and adds the match "_TRANSPORT=kernel".
+
+       --tt, ----iiddeennttiiffiieerr==_S_Y_S_L_O_G___I_D_E_N_T_I_F_I_E_R
+           Show messages for the specified syslog identifier _S_Y_S_L_O_G___I_D_E_N_T_I_F_I_E_R.
+
+           This parameter can be specified multiple times.
+
+       --uu, ----uunniitt==_U_N_I_T||_P_A_T_T_E_R_N
+           Show messages for the specified systemd unit _U_N_I_T (such as a service unit), or for any of the units matched by _P_A_T_T_E_R_N. If a pattern is specified, a list of unit names found in the journal is
+           compared with the specified pattern and all that match are used. For each unit name, a match is added for messages from the unit ("_SYSTEMD_UNIT=_U_N_I_T"), along with additional matches for
+           messages from systemd and messages about coredumps for the specified unit. A match is also added for "_SYSTEMD_SLICE=_U_N_I_T", such that if the provided _U_N_I_T is a ssyysstteemmdd..sslliiccee(5) unit, all logs of
+           the children of the slice will be logged.
+
+           This parameter can be specified multiple times.
+
+       ----uusseerr--uunniitt==
+           Show messages for the specified user session unit. This will add a match for messages from the unit ("_SYSTEMD_USER_UNIT=" and "_UID=") and additional matches for messages from session systemd
+           and messages about coredumps for the specified unit. A match is also added for "_SYSTEMD_USER_SLICE=_U_N_I_T", such that if the provided _U_N_I_T is a ssyysstteemmdd..sslliiccee(5) unit, all logs of the children of
+           the unit will be logged.
+
+           This parameter can be specified multiple times.
+
+       --pp, ----pprriioorriittyy==
+           Filter output by message priorities or priority ranges. Takes either a single numeric or textual log level (i.e. between 0/"emerg" and 7/"debug"), or a range of numeric/text log levels in the
+           form FROM..TO. The log levels are the usual syslog log levels as documented in ssyysslloogg(3), i.e.  "emerg" (0), "alert" (1), "crit" (2), "err" (3), "warning" (4), "notice" (5), "info" (6),
+           "debug" (7). If a single log level is specified, all messages with this log level or a lower (hence more important) log level are shown. If a range is specified, all messages within the range
+           are shown, including both the start and the end value of the range. This will add "PRIORITY=" matches for the specified priorities.
+
+       ----ffaacciilliittyy==
+           Filter output by syslog facility. Takes a comma-separated list of numbers or facility names. The names are the usual syslog facilities as documented in ssyysslloogg(3).  ----ffaacciilliittyy==hheellpp may be used to
+           display a list of known facility names and exit.
+
+       --gg, ----ggrreepp==
+           Filter output to entries where the _M_E_S_S_A_G_E_= field matches the specified regular expression. PERL-compatible regular expressions are used, see ppccrree22ppaatttteerrnn(3) for a detailed description of the
+           syntax.
+
+           If the pattern is all lowercase, matching is case insensitive. Otherwise, matching is case sensitive. This can be overridden with the ----ccaassee--sseennssiittiivvee option, see below.
+
+       ----ccaassee--sseennssiittiivvee[[==BBOOOOLLEEAANN]]
+           Make pattern matching case sensitive or case insenstive.
+
+       --cc, ----ccuurrssoorr==
+           Start showing entries from the location in the journal specified by the passed cursor.
+
+       ----ccuurrssoorr--ffiillee==_F_I_L_E
+           If _F_I_L_E exists and contains a cursor, start showing entries _a_f_t_e_r this location. Otherwise the show entries according the other given options. At the end, write the cursor of the last entry to
+           _F_I_L_E. Use this option to continually read the journal by sequentially calling jjoouurrnnaallccttll.
+
+       ----aafftteerr--ccuurrssoorr==
+           Start showing entries from the location in the journal _a_f_t_e_r the location specified by the passed cursor. The cursor is shown when the ----sshhooww--ccuurrssoorr option is used.
+
+       ----sshhooww--ccuurrssoorr
+           The cursor is shown after the last entry after two dashes:
+
+               -- cursor: s=0639...
+
+           The format of the cursor is private and subject to change.
+
+       --SS, ----ssiinnccee==, --UU, ----uunnttiill==
+           Start showing entries on or newer than the specified date, or on or older than the specified date, respectively. Date specifications should be of the format "2012-10-30 18:17:16". If the time
+           part is omitted, "00:00:00" is assumed. If only the seconds component is omitted, ":00" is assumed. If the date component is omitted, the current day is assumed. Alternatively the strings
+           "yesterday", "today", "tomorrow" are understood, which refer to 00:00:00 of the day before the current day, the current day, or the day after the current day, respectively.  "now" refers to the
+           current time. Finally, relative times may be specified, prefixed with "-" or "+", referring to times before or after the current time, respectively. For complete time and date specification, see
+           ssyysstteemmdd..ttiimmee(7). Note that ----oouuttppuutt==sshhoorrtt--ffuullll prints timestamps that follow precisely this format.
+
+       --FF, ----ffiieelldd==
+           Print all possible data values the specified field can take in all entries of the journal.
+
+       --NN, ----ffiieellddss
+           Print all field names currently used in all entries of the journal.
+
+       ----ssyysstteemm, ----uusseerr
+           Show messages from system services and the kernel (with ----ssyysstteemm). Show messages from service of current user (with ----uusseerr). If neither is specified, show all messages that the user can see.
+
+       --MM, ----mmaacchhiinnee==
+           Show messages from a running, local container. Specify a container name to connect to.
+
+       --DD _D_I_R, ----ddiirreeccttoorryy==_D_I_R
+           Takes a directory path as argument. If specified, journalctl will operate on the specified journal directory _D_I_R instead of the default runtime and system journal paths.
+
+       ----ffiillee==_G_L_O_B
+           Takes a file glob as an argument. If specified, journalctl will operate on the specified journal files matching _G_L_O_B instead of the default runtime and system journal paths. May be specified
+           multiple times, in which case files will be suitably interleaved.
+
+       ----rroooott==_R_O_O_T
+           Takes a directory path as an argument. If specified, journalctl will operate on journal directories and catalog file hierarchy underneath the specified directory instead of the root directory
+           (e.g.  ----uuppddaattee--ccaattaalloogg will create _R_O_O_T/var/lib/systemd/catalog/database, and journal files under _R_O_O_T/run/journal or _R_O_O_T/var/log/journal will be displayed).
+
+       ----nnaammeessppaaccee==_N_A_M_E_S_P_A_C_E
+           Takes a journal namespace identifier string as argument. If not specified the data collected by the default namespace is shown. If specified shows the log data of the specified namespace
+           instead. If the namespace is specified as "*" data from all namespaces is shown, interleaved. If the namespace identifier is prefixed with "+" data from the specified namespace and the default
+           namespace is shown, interleaved, but no other. For details about journal namespaces see ssyysstteemmdd--jjoouurrnnaalldd..sseerrvviiccee(8).
+
+       ----hheeaaddeerr
+           Instead of showing journal contents, show internal header information of the journal fields accessed.
+
+       ----ddiisskk--uussaaggee
+           Shows the current disk usage of all journal files. This shows the sum of the disk usage of all archived and active journal files.
+
+       ----vvaaccuuuumm--ssiizzee==, ----vvaaccuuuumm--ttiimmee==, ----vvaaccuuuumm--ffiilleess==
+           Removes the oldest archived journal files until the disk space they use falls below the specified size (specified with the usual "K", "M", "G" and "T" suffixes), or all archived journal files
+           contain no data older than the specified timespan (specified with the usual "s", "m", "h", "days", "months", "weeks" and "years" suffixes), or no more than the specified number of separate
+           journal files remain. Note that running ----vvaaccuuuumm--ssiizzee== has only an indirect effect on the output shown by ----ddiisskk--uussaaggee, as the latter includes active journal files, while the vacuuming operation
+           only operates on archived journal files. Similarly, ----vvaaccuuuumm--ffiilleess== might not actually reduce the number of journal files to below the specified number, as it will not remove active journal
+           files.
+
+           ----vvaaccuuuumm--ssiizzee==, ----vvaaccuuuumm--ttiimmee== and ----vvaaccuuuumm--ffiilleess== may be combined in a single invocation to enforce any combination of a size, a time and a number of files limit on the archived journal files.
+           Specifying any of these three parameters as zero is equivalent to not enforcing the specific limit, and is thus redundant.
+
+           These three switches may also be combined with ----rroottaattee into one command. If so, all active files are rotated first, and the requested vacuuming operation is executed right after. The rotation
+           has the effect that all currently active files are archived (and potentially new, empty journal files opened as replacement), and hence the vacuuming operation has the greatest effect as it can
+           take all log data written so far into account.
+
+       ----lliisstt--ccaattaalloogg [[_1_2_8_-_b_i_t_-_I_D_._._.]
+           List the contents of the message catalog as a table of message IDs, plus their short description strings.
+
+           If any _1_2_8_-_b_i_t_-_I_Ds are specified, only those entries are shown.
+
+       ----dduummpp--ccaattaalloogg [[_1_2_8_-_b_i_t_-_I_D_._._.]
+           Show the contents of the message catalog, with entries separated by a line consisting of two dashes and the ID (the format is the same as .catalog files).
+
+           If any _1_2_8_-_b_i_t_-_I_Ds are specified, only those entries are shown.
+
+       ----uuppddaattee--ccaattaalloogg
+           Update the message catalog index. This command needs to be executed each time new catalog files are installed, removed, or updated to rebuild the binary catalog index.
+
+       ----sseettuupp--kkeeyyss
+           Instead of showing journal contents, generate a new key pair for Forward Secure Sealing (FSS). This will generate a sealing key and a verification key. The sealing key is stored in the journal
+           data directory and shall remain on the host. The verification key should be stored externally. Refer to the SSeeaall== option in jjoouurrnnaalldd..ccoonnff(5) for information on Forward Secure Sealing and for a
+           link to a refereed scholarly paper detailing the cryptographic theory it is based on.
+
+       ----ffoorrccee
+           When ----sseettuupp--kkeeyyss is passed and Forward Secure Sealing (FSS) has already been configured, recreate FSS keys.
+
+       ----iinntteerrvvaall==
+           Specifies the change interval for the sealing key when generating an FSS key pair with ----sseettuupp--kkeeyyss. Shorter intervals increase CPU consumption but shorten the time range of undetectable journal
+           alterations. Defaults to 15min.
+
+       ----vveerriiffyy
+           Check the journal file for internal consistency. If the file has been generated with FSS enabled and the FSS verification key has been specified with ----vveerriiffyy--kkeeyy==, authenticity of the journal
+           file is verified.
+
+       ----vveerriiffyy--kkeeyy==
+           Specifies the FSS verification key to use for the ----vveerriiffyy operation.
+
+       ----ssyynncc
+           Asks the journal daemon to write all yet unwritten journal data to the backing file system and synchronize all journals. This call does not return until the synchronization operation is
+           complete. This command guarantees that any log messages written before its invocation are safely stored on disk at the time it returns.
+
+       ----fflluusshh
+           Asks the journal daemon to flush any log data stored in /run/log/journal/ into /var/log/journal/, if persistent storage is enabled. This call does not return until the operation is complete.
+           Note that this call is idempotent: the data is only flushed from /run/log/journal/ into /var/log/journal once during system runtime (but see ----rreelliinnqquuiisshh--vvaarr below), and this command exits
+           cleanly without executing any operation if this has already happened. This command effectively guarantees that all data is flushed to /var/log/journal at the time it returns.
+
+       ----rreelliinnqquuiisshh--vvaarr
+           Asks the journal daemon for the reverse operation to ----fflluusshh: if requested the daemon will write further log data to /run/log/journal/ and stops writing to /var/log/journal/. A subsequent call
+           to ----fflluusshh causes the log output to switch back to /var/log/journal/, see above.
+
+       ----ssmmaarrtt--rreelliinnqquuiisshh--vvaarr
+           Similar to ----rreelliinnqquuiisshh--vvaarr but executes no operation if the root file system and /var/lib/journal/ reside on the same mount point. This operation is used during system shutdown in order to make
+           the journal daemon stop writing data to /var/log/journal/ in case that directory is located on a mount point that needs to be unmounted.
+
+       ----rroottaattee
+           Asks the journal daemon to rotate journal files. This call does not return until the rotation operation is complete. Journal file rotation has the effect that all currently active journal files
+           are marked as archived and renamed, so that they are never written to in future. New (empty) journal files are then created in their place. This operation may be combined with ----vvaaccuuuumm--ssiizzee==,
+           ----vvaaccuuuumm--ttiimmee== and ----vvaaccuuuumm--ffiillee== into a single command, see above.
+
+       --hh, ----hheellpp
+           Print a short help text and exit.
+
+       ----vveerrssiioonn
+           Print a short version string and exit.
+
+       ----nnoo--ppaaggeerr
+           Do not pipe output into a pager.
+
+EEXXIITT SSTTAATTUUSS
+       On success, 0 is returned; otherwise, a non-zero failure code is returned.
+
+EENNVVIIRROONNMMEENNTT
+       _$_S_Y_S_T_E_M_D___P_A_G_E_R
+           Pager to use when ----nnoo--ppaaggeerr is not given; overrides _$_P_A_G_E_R. If neither _$_S_Y_S_T_E_M_D___P_A_G_E_R nor _$_P_A_G_E_R are set, a set of well-known pager implementations are tried in turn, including lleessss(1) and
+           mmoorree(1), until one is found. If no pager implementation is discovered no pager is invoked. Setting this environment variable to an empty string or the value "cat" is equivalent to passing
+           ----nnoo--ppaaggeerr.
+
+       _$_S_Y_S_T_E_M_D___L_E_S_S
+           Override the options passed to lleessss (by default "FRSXMK").
+
+           Users might want to change two options in particular:
+
+           KK
+               This option instructs the pager to exit immediately when Ctrl+C is pressed. To allow lleessss to handle Ctrl+C itself to switch back to the pager command prompt, unset this option.
+
+               If the value of _$_S_Y_S_T_E_M_D___L_E_S_S does not include "K", and the pager that is invoked is lleessss, Ctrl+C will be ignored by the executable, and needs to be handled by the pager.
+
+           XX
+               This option instructs the pager to not send termcap initialization and deinitialization strings to the terminal. It is set by default to allow command output to remain visible in the
+               terminal even after the pager exits. Nevertheless, this prevents some pager functionality from working, in particular paged output cannot be scrolled with the mouse.
+
+           See lleessss(1) for more discussion.
+
+       _$_S_Y_S_T_E_M_D___L_E_S_S_C_H_A_R_S_E_T
+           Override the charset passed to lleessss (by default "utf-8", if the invoking terminal is determined to be UTF-8 compatible).
+
+       _$_S_Y_S_T_E_M_D___C_O_L_O_R_S
+           The value must be a boolean. Controls whether colorized output should be generated. This can be specified to override the decision that ssyysstteemmdd makes based on _$_T_E_R_M and what the console is
+           connected to.
+
+       _$_S_Y_S_T_E_M_D___U_R_L_I_F_Y
+           The value must be a boolean. Controls whether clickable links should be generated in the output for terminal emulators supporting this. This can be specified to override the decision that
+           ssyysstteemmdd makes based on _$_T_E_R_M and other conditions.
+
+EEXXAAMMPPLLEESS
+       Without arguments, all collected logs are shown unfiltered:
+
+           journalctl
+
+       With one match specified, all entries with a field matching the expression are shown:
+
+           journalctl _SYSTEMD_UNIT=avahi-daemon.service
+           journalctl _SYSTEMD_CGROUP=/user.slice/user-42.slice/session-c1.scope
+
+       If two different fields are matched, only entries matching both expressions at the same time are shown:
+
+           journalctl _SYSTEMD_UNIT=avahi-daemon.service _PID=28097
+
+       If two matches refer to the same field, all entries matching either expression are shown:
+
+           journalctl _SYSTEMD_UNIT=avahi-daemon.service _SYSTEMD_UNIT=dbus.service
+
+       If the separator "+" is used, two expressions may be combined in a logical OR. The following will show all messages from the Avahi service process with the PID 28097 plus all messages from the D-Bus
+       service (from any of its processes):
+
+           journalctl _SYSTEMD_UNIT=avahi-daemon.service _PID=28097 + _SYSTEMD_UNIT=dbus.service
+
+       To show all fields emitted _b_y a unit and _a_b_o_u_t the unit, option --uu/----uunniitt== should be used.  jjoouurrnnaallccttll --uu _n_a_m_e expands to a complex filter similar to
+
+           _SYSTEMD_UNIT=_n_a_m_e.service
+             + UNIT=_n_a_m_e.service _PID=1
+             + OBJECT_SYSTEMD_UNIT=_n_a_m_e.service _UID=0
+             + COREDUMP_UNIT=_n_a_m_e.service _UID=0 MESSAGE_ID=fc2e22bc6ee647b6b90729ab34a250b1
+
+       (see ssyysstteemmdd..jjoouurrnnaall--ffiieellddss(7) for an explanation of those patterns).
+
+       Show all logs generated by the D-Bus executable:
+
+           journalctl /usr/bin/dbus-daemon
+
+       Show all kernel logs from previous boot:
+
+           journalctl -k -b -1
+
+       Show a live log display from a system service apache.service:
+
+           journalctl -f -u apache
+
+SSEEEE AALLSSOO
+       ssyysstteemmdd(1), ssyysstteemmdd--jjoouurrnnaalldd..sseerrvviiccee(8), ssyysstteemmccttll(1), ccoorreedduummppccttll(1), ssyysstteemmdd..jjoouurrnnaall--ffiieellddss(7), jjoouurrnnaalldd..ccoonnff(5), ssyysstteemmdd..ttiimmee(7), ssyysstteemmdd--jjoouurrnnaall--rreemmoottee..sseerrvviiccee(8), ssyysstteemmdd--jjoouurrnnaall--
+       uuppllooaadd..sseerrvviiccee(8)
+
+NNOOTTEESS
+        1. Journal Export Format
+           https://www.freedesktop.org/wiki/Software/systemd/export
+
+        2. Journal JSON Format
+           https://www.freedesktop.org/wiki/Software/systemd/json
+
+        3. Server-Sent Events
+           https://developer.mozilla.org/en-US/docs/Server-sent_events/Using_server-sent_events
+
+        4. JavaScript Object Notation (JSON) Text Sequences
+           https://tools.ietf.org/html/rfc7464
+
+        5. Message Catalog Developer Documentation
+           https://www.freedesktop.org/wiki/Software/systemd/catalog
+
+systemd 245                                                                                                                                                                                     JOURNALCTL(1)
